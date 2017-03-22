@@ -34,6 +34,20 @@ class mailcatcher::params {
             }
           }
         }
+        'Debian': {
+          case $::lsbdistcodename {
+            'jessie': {
+              $config_file = '/etc/systemd/system/mailcatcher.service'
+              $template    = 'mailcatcher/etc/systemd/system/mailcatcher.service.erb'
+              $provider    = 'systemd'
+            }
+            default: {
+              $config_file = '/etc/init/mailcatcher.conf'
+              $template    = 'mailcatcher/etc/init/mailcatcher.conf.erb'
+              $provider    = 'upstart'
+            }
+          }
+        }
         default: {
           $config_file = '/etc/init.d/mailcatcher'
           $template    = 'mailcatcher/etc/init/mailcatcher.lsb.erb'
@@ -43,7 +57,9 @@ class mailcatcher::params {
     }
     # RHEL/CentOS
     'Redhat': {
-      # rubygem-mime-types from gem requires ruby >= 1.9.2 which is not available on CentOS6, in CentOS7 the gem installed mime-types causes "Encoding::CompatibilityError", so use the package from EPEL which just works fine for CentOS 6 and 7.
+      # rubygem-mime-types from gem requires ruby >= 1.9.2 which is not available on CentOS6, in CentOS7
+      # the gem installed mime-types causes "Encoding::CompatibilityError", so use the package from EPEL
+      # which just works fine for CentOS 6 and 7.
       $std_packages = ['sqlite-devel', 'rubygem-mime-types']
       $config_file  = '/etc/init.d/mailcatcher'
       $template     = 'mailcatcher/etc/init/mailcatcher.sysv.erb'
@@ -54,7 +70,9 @@ class mailcatcher::params {
         '7': {
           $mailcatcher_path = '/usr/local/bin'
           # json_pure is a runtime requirement which does not get installed with mailcatcher 0.5.12
-          # multi_json from gem causes a crash when receiving a mail: /usr/local/share/ruby/site_ruby/rubygems/core_ext/kernel_require.rb:54:in `require': Did not recognize your adapter specification (cannot load such file -- json/ext/parser). (MultiJson::AdapterError)
+          # multi_json from gem causes a crash when receiving a mail:
+          # /usr/local/share/ruby/site_ruby/rubygems/core_ext/kernel_require.rb:54: in `require':
+          #   Did not recognize your adapter specification (cannot load such file -- json/ext/parser). (MultiJson::AdapterError)
           $packages = union($std_packages, ['rubygem-json_pure', 'rubygem-multi_json'])
           $version  = $default_version
         }
@@ -72,9 +90,13 @@ class mailcatcher::params {
           $fixeventmachineversion = '1.0.3'
 
           # don't ask me why, otherwise everything breaks. This was not yet necessary this morning!!! WTF?!?
-          # Execution of '/usr/bin/gem install -v 0.5.12 --no-rdoc --no-ri mailcatcher' returned 1: ERROR: Error installing mailcatcher: sinatra requires tilt (~> 1.3, >= 1.3.4, runtime)
+          # Execution of '/usr/bin/gem install -v 0.5.12 --no-rdoc --no-ri mailcatcher' returned 1:
+          #   ERROR: Error installing mailcatcher: sinatra requires tilt (~> 1.3, >= 1.3.4, runtime)
           # but gem chooses to install tilt (2.0.1) ?!?
-          # Maybe because of haml?: Error: Could not start Service[mailcatcher]: Execution of '/sbin/service mailcatcher start' returned 1: /usr/lib/ruby/site_ruby/1.8/rubygems.rb:233:in `activate': can't activate tilt (~> 1.3, >= 1.3.4, runtime) for ["sinatra-1.4.5", "mailcatcher-0.5.12"], already activated tilt-2.0.1 for ["haml-4.0.6", "mailcatcher-0.5.12"] (Gem::LoadError)
+          # Maybe because of haml?: Error: Could not start Service[mailcatcher]: Execution of '/sbin/service mailcatcher start'
+          #   returned 1: /usr/lib/ruby/site_ruby/1.8/rubygems.rb:233:in `activate': can't activate tilt (~> 1.3, >= 1.3.4, runtime)
+          #   for ["sinatra-1.4.5", "mailcatcher-0.5.12"], already activated tilt-2.0.1 for ["haml-4.0.6", "mailcatcher-0.5.12"]
+          #   (Gem::LoadError)
           # I give up on this mess. It works now, but I have no idea for how long.
           package { 'tilt':
             ensure   => '1.4.1',
