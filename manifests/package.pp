@@ -3,7 +3,10 @@
 class mailcatcher::package {
   include ruby
   include ruby::dev
-  include gcc
+
+  if $::osfamily == 'RedHat' {
+    include gcc
+  }
 
   package { $mailcatcher::params::packages :
     ensure => 'present'
